@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wordwall Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --sky:#3b9eff;--sky-d:#1a7de0;--sky-s:#e8f3ff;
+  --mint:#22c58b;--mint-s:#e6f9f2;
+  --amber:#f5a623;--amber-s:#fff4e0;
+  --coral:#ff5c6a;--coral-s:#fff0f1;
+  --violet:#7c6ff7;--violet-s:#f0effe;
+  --slate:#64748b;--border:#e4eaf2;--bg:#f4f8fd;
+  --text:#1e293b;
+  --r:14px;--rs:9px;
+  --sh:0 2px 16px rgba(59,158,255,0.09);
+  --sh2:0 6px 28px rgba(59,158,255,0.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:60px}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#1a7de0,#3b9eff 50%,#56bfff)}
+.login-box{background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.18)}
+.login-logo{text-align:center;font-size:3rem;margin-bottom:8px}
+.login-title{font-family:'Baloo 2',cursive;font-weight:800;font-size:1.4rem;color:var(--sky-d);text-align:center;margin-bottom:4px}
+.login-sub{font-size:0.78rem;color:var(--slate);text-align:center;margin-bottom:24px;font-weight:600}
+.login-err{background:var(--coral-s);color:var(--coral);border-radius:var(--rs);padding:10px 14px;font-size:0.82rem;font-weight:700;margin-bottom:14px;display:none}
+.login-err.show{display:block}
+
+/* HEADER */
+.hd{background:linear-gradient(120deg,#1a7de0,#3b9eff 55%,#56bfff);padding:13px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:200;box-shadow:0 3px 18px rgba(26,125,224,0.28)}
+.hd-ico{font-size:22px}.hd-sp{flex:1}
+.hd-title{font-family:'Baloo 2',cursive;font-weight:800;font-size:1rem;color:#fff;line-height:1.15}
+.hd-sub{font-size:0.65rem;color:rgba(255,255,255,0.82);font-weight:600}
+.hd-user{background:rgba(255,255,255,0.18);border-radius:20px;padding:4px 10px;font-size:0.72rem;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;gap:5px}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;display:inline-block}
+.sync-dot.off{background:#f87171}
+
+/* TABS */
+.tabs{background:#fff;display:flex;border-bottom:2px solid var(--border);position:sticky;top:58px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+.tb{flex:1;padding:10px 4px 9px;border:none;background:none;cursor:pointer;font-family:'Quicksand',sans-serif;font-weight:700;font-size:0.74rem;color:var(--slate);display:flex;flex-direction:column;align-items:center;gap:2px;transition:color .2s;position:relative}
+.tb .ico{font-size:1.1rem}
+.tb.on{color:var(--sky-d)}
+.tb.on::after{content:'';position:absolute;bottom:-2px;left:15%;right:15%;height:3px;background:var(--sky);border-radius:3px 3px 0 0}
+
+/* PAGES */
+.pg{display:none;padding:13px;max-width:660px;margin:0 auto}.pg.on{display:block}
+
+/* CARD */
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:15px;margin-bottom:12px}
+.card-title{font-family:'Baloo 2',cursive;font-weight:700;font-size:0.92rem;color:var(--sky-d);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+
+/* FORM */
+label{font-size:0.68rem;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+input{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:var(--rs);font-family:'Quicksand',sans-serif;font-size:0.86rem;color:var(--text);background:#fff;outline:none;transition:border .2s}
+input:focus{border-color:var(--sky)}.fr{margin-bottom:11px}
+
+/* BLOCK SEL */
+.block-sel{display:flex;gap:7px;margin-bottom:8px}
+.bb{flex:1;padding:8px 5px;border:2px solid var(--border);border-radius:var(--rs);background:#fff;cursor:pointer;font-family:'Quicksand',sans-serif;font-weight:700;font-size:0.78rem;color:var(--slate);display:flex;align-items:center;justify-content:center;gap:4px;transition:all .2s}
+.bb.on{background:var(--sky-s);border-color:var(--sky);color:var(--sky-d)}
+
+/* CHIPS */
+.ex-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
+.ec{padding:5px 12px;border-radius:20px;border:2px solid var(--border);background:#fff;color:var(--slate);font-family:'Quicksand',sans-serif;font-weight:700;font-size:0.76rem;cursor:pointer;transition:all .15s;user-select:none}
+.ec.on{background:var(--sky);border-color:var(--sky);color:#fff}
+
+/* EX ROW */
+.ex-row{background:#f7f9fc;border:1.5px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:8px;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.ex-hd{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.ex-num{background:var(--sky);color:#fff;font-size:0.66rem;font-weight:800;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-name{font-size:0.83rem;font-weight:700;color:var(--text);flex:1}
+.ex-links{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ll{font-size:0.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px}
+.ll-p{color:var(--mint)}.ll-r{color:var(--coral)}
+
+/* PREVIEW */
+.preview{background:var(--sky-s);border-left:4px solid var(--sky);border-radius:0 var(--rs) var(--rs) 0;padding:12px;font-size:0.81rem;line-height:1.75;white-space:pre-wrap;word-break:break-all;max-height:240px;overflow-y:auto;color:var(--text)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--rs);border:none;cursor:pointer;font-family:'Quicksand',sans-serif;font-weight:700;font-size:0.82rem;transition:all .17s}
+.btn-sky{background:var(--sky);color:#fff}.btn-sky:hover{background:var(--sky-d);transform:translateY(-1px)}
+.btn-mint{background:var(--mint);color:#fff}.btn-mint:hover{background:#1aad79;transform:translateY(-1px)}
+.btn-amber{background:var(--amber);color:#fff}.btn-amber:hover{background:#d9901a;transform:translateY(-1px)}
+.btn-coral{background:var(--coral);color:#fff}.btn-coral:hover{background:#e5414e}
+.btn-violet{background:var(--violet);color:#fff}.btn-violet:hover{background:#6c5ce7}
+.btn-ghost{background:var(--border);color:var(--slate)}.btn-ghost:hover{background:#d0d8e4}
+.btn-full{width:100%;justify-content:center}.btn-sm{padding:6px 12px;font-size:0.74rem}
+.btn-grp{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+
+/* RESULT ITEMS */
+.ri{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:13px;margin-bottom:10px;border-left:4px solid var(--sky);transition:box-shadow .2s}
+.ri:hover{box-shadow:var(--sh2)}.ri.warn{border-left-color:var(--amber)}
+.ri-title{font-family:'Baloo 2',cursive;font-weight:700;font-size:0.92rem}
+.ri-meta{font-size:0.7rem;color:var(--slate);font-weight:600;margin-top:2px}
+.ri-warn{font-size:0.68rem;font-weight:700;color:var(--amber);margin-top:2px}
+.ri-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.ri-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:0.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;flex-shrink:0}
+.b-sky{background:var(--sky-s);color:var(--sky-d)}.b-amber{background:var(--amber-s);color:#9a6100}
+
+/* RESULT DETAIL */
+.rex{background:#f7f9fc;border-radius:var(--rs);padding:9px 11px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rex-name{font-weight:700;font-size:0.82rem}.rex-url{font-size:0.68rem;color:var(--slate);word-break:break-all;margin-top:2px}
+
+/* USER LIST */
+.user-item{background:#f7f9fc;border-radius:var(--rs);padding:10px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0}
+.ua-admin{background:var(--violet-s);color:var(--violet)}
+.ua-teacher{background:var(--mint-s);color:var(--mint)}
+.user-info{flex:1}
+.user-name{font-weight:700;font-size:0.85rem}
+.user-role{font-size:0.68rem;color:var(--slate);font-weight:600}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.42);z-index:400;align-items:center;justify-content:center;padding:14px}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:var(--r);width:100%;max-width:460px;max-height:88vh;overflow-y:auto;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,0.22)}
+.modal-title{font-family:'Baloo 2',cursive;font-weight:800;font-size:1rem;color:var(--sky-d);margin-bottom:12px}
+.modal-acts{display:flex;gap:7px;margin-top:13px;justify-content:flex-end;flex-wrap:wrap}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:#1e293b;color:#fff;padding:10px 20px;border-radius:30px;font-weight:700;font-size:0.8rem;z-index:9999;transition:transform .28s;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.22)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* NOTE */
+.note{background:var(--amber-s);border-left:3px solid var(--amber);border-radius:0 var(--rs) var(--rs) 0;padding:9px 12px;font-size:0.76rem;font-weight:600;color:#7a4f00;line-height:1.6;margin-bottom:12px}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 16px;color:var(--slate)}
+.empty-ico{font-size:2.8rem;margin-bottom:8px}.empty-txt{font-weight:700;font-size:0.86rem;line-height:1.6}
+
+/* MANAGE */
+.manage-row{display:flex;align-items:center;gap:8px;background:#f7f9fc;border-radius:var(--rs);padding:7px 10px;margin-bottom:5px}
+.manage-num{background:var(--sky);color:#fff;font-size:0.66rem;font-weight:800;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.manage-name{flex:1;font-size:0.82rem;font-weight:700}
+.btn-del{background:var(--coral-s);color:var(--coral);border:none;border-radius:7px;width:24px;height:24px;cursor:pointer;font-size:0.85rem;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.btn-del:hover{background:var(--coral);color:#fff}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:12px 0}
+
+@media(max-width:480px){.ex-links{grid-template-columns:1fr}}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#d0d8e4;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="login-page">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">🎮</div>
+      <div class="login-title">Wordwall Manager</div>
+      <div class="login-sub">English for Kids – Học qua Trò Chơi</div>
+      <div class="login-err" id="login-err">Sai tên đăng nhập hoặc mật khẩu!</div>
+      <div class="fr"><label>Tên đăng nhập</label><input type="text" id="inp-user" placeholder="username" autocomplete="username"></div>
+      <div class="fr"><label>Mật khẩu</label><input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="btn btn-sky btn-full" id="btn-login" onclick="doLogin()">🔐 Đăng nhập</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" style="display:none">
+
+<div class="hd">
+  <div class="hd-ico">🎮</div>
+  <div><div class="hd-title">Wordwall Manager <span class="sync-dot" id="sync-dot"></span></div><div class="hd-sub">English for Kids – Học qua Trò Chơi</div></div>
+  <div class="hd-sp"></div>
+  <div class="hd-user" onclick="openUserMenu()">
+    <span id="hd-username">...</span> ▾
+  </div>
+</div>
+
+<div class="tabs" id="main-tabs">
+  <button class="tb on" onclick="goTab('pg-assign',this)"><span class="ico">✏️</span>Giao bài</button>
+  <button class="tb" onclick="goTab('pg-results',this)"><span class="ico">📊</span>Kết quả</button>
+  <button class="tb" id="tab-admin" style="display:none" onclick="goTab('pg-admin',this)"><span class="ico">⚙️</span>Quản lý</button>
+</div>
+
+<!-- GIAO BÀI -->
+<div class="pg on" id="pg-assign">
+  <div class="card">
+    <div class="card-title">📌 Thông tin bài học</div>
+    <div class="fr"><label>Nội dung bài học</label><input type="text" id="inp-topic" placeholder="VD: School Supplies Song, Colors..."></div>
+    <div class="fr" style="margin-bottom:0"><label>Ngày giao</label><input type="date" id="inp-date"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🗂️ Chọn khối & dạng bài</div>
+    <div class="block-sel">
+      <button class="bb on" id="bb-mn" onclick="setBlock('mn')">🌸 Mầm non</button>
+      <button class="bb" id="bb-th" onclick="setBlock('th')">🏫 Tiểu học</button>
+      <button class="bb" id="bb-to" onclick="setBlock('to')">🔢 Toán</button>
+    </div>
+    <div style="text-align:right;margin-bottom:9px">
+      <button class="btn btn-ghost btn-sm" onclick="openManage()" style="font-size:0.7rem">⚙️ Quản lý dạng bài</button>
+    </div>
+    <div class="ex-chips" id="chips"></div>
+    <div id="rows"></div>
+    <button class="btn btn-ghost btn-full btn-sm" style="margin-top:4px" onclick="addCustomRow()">➕ Thêm dạng bài khác</button>
+  </div>
+  <div class="card">
+    <div class="card-title">👀 Tin nhắn giao bài</div>
+    <div class="preview" id="preview">← Điền tên bài học và chọn dạng bài bên trên</div>
+    <div class="btn-grp">
+      <button class="btn btn-mint" onclick="doCopy()">📋 Copy tin giao bài</button>
+      <button class="btn btn-amber" id="btn-save" onclick="doSave()">💾 Lưu buổi học</button>
+    </div>
+  </div>
+</div>
+
+<!-- KẾT QUẢ -->
+<div class="pg" id="pg-results">
+  <div class="note">📌 Kết quả của bạn — chỉ bạn xem. ⏳ Cảnh báo sau <b>7 ngày</b>.</div>
+  <div id="results-list"><div style="text-align:center;padding:20px;color:var(--slate);font-weight:700">⏳ Đang tải...</div></div>
+</div>
+
+<!-- QUẢN LÝ (Admin) -->
+<div class="pg" id="pg-admin">
+  <div class="card">
+    <div class="card-title">👥 Danh sách tài khoản</div>
+    <div id="user-list"></div>
+    <div class="divider"></div>
+    <button class="btn btn-sky btn-sm" onclick="openAddUser()">➕ Thêm tài khoản</button>
+  </div>
+  <div class="card">
+    <div class="card-title">🔑 Đổi mật khẩu của tôi</div>
+    <div class="fr"><label>Mật khẩu mới</label><input type="password" id="inp-new-pass" placeholder="Nhập mật khẩu mới..."></div>
+    <div class="fr" style="margin-bottom:0"><label>Xác nhận mật khẩu</label><input type="password" id="inp-confirm-pass" placeholder="Nhập lại mật khẩu mới..."></div>
+    <div class="btn-grp"><button class="btn btn-violet btn-sm" onclick="changeMyPassword()">🔒 Đổi mật khẩu</button></div>
+  </div>
+</div>
+
+</div><!-- end main-app -->
+
+<!-- MODAL: Đổi mật khẩu (giáo viên) -->
+<div class="overlay" id="modal-chpass">
+  <div class="modal">
+    <div class="modal-title">🔑 Đổi mật khẩu</div>
+    <div class="fr"><label>Mật khẩu mới</label><input type="password" id="cp-new" placeholder="Nhập mật khẩu mới..."></div>
+    <div class="fr"><label>Xác nhận</label><input type="password" id="cp-confirm" placeholder="Nhập lại..."></div>
+    <div class="modal-acts">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-chpass')">Hủy</button>
+      <button class="btn btn-violet btn-sm" onclick="saveNewPassword()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: User menu -->
+<div class="overlay" id="modal-user-menu">
+  <div class="modal" style="max-width:300px">
+    <div class="modal-title" id="um-name">Tài khoản</div>
+    <div id="um-role" style="font-size:0.78rem;color:var(--slate);margin-bottom:14px"></div>
+    <button class="btn btn-violet btn-full btn-sm" style="margin-bottom:8px" onclick="closeModal('modal-user-menu');openChangePass()">🔑 Đổi mật khẩu</button>
+    <button class="btn btn-coral btn-full btn-sm" onclick="doLogout()">🚪 Đăng xuất</button>
+    <div class="modal-acts"><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-user-menu')">Đóng</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Thêm user (admin) -->
+<div class="overlay" id="modal-add-user">
+  <div class="modal">
+    <div class="modal-title">➕ Thêm tài khoản</div>
+    <div class="fr"><label>Tên đăng nhập</label><input type="text" id="nu-username" placeholder="username..."></div>
+    <div class="fr"><label>Mật khẩu</label><input type="password" id="nu-password" placeholder="password..."></div>
+    <div class="fr"><label>Họ tên hiển thị</label><input type="text" id="nu-displayname" placeholder="Nguyễn Văn A..."></div>
+    <div class="fr" style="margin-bottom:0">
+      <label>Vai trò</label>
+      <select id="nu-role" style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:var(--rs);font-family:Quicksand,sans-serif;font-size:0.86rem;outline:none">
+        <option value="teacher">Giáo viên</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-add-user')">Hủy</button>
+      <button class="btn btn-sky btn-sm" onclick="saveNewUser()">💾 Tạo tài khoản</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Quản lý dạng bài -->
+<div class="overlay" id="modal-manage">
+  <div class="modal">
+    <div class="modal-title">⚙️ Quản lý dạng bài</div>
+    <div style="display:flex;gap:7px;margin-bottom:12px">
+      <button class="bb on" id="mb-mn" onclick="switchMB('mn')" style="flex:1;padding:6px;font-size:0.73rem">🌸 Mầm non</button>
+      <button class="bb" id="mb-th" onclick="switchMB('th')" style="flex:1;padding:6px;font-size:0.73rem">🏫 Tiểu học</button>
+      <button class="bb" id="mb-to" onclick="switchMB('to')" style="flex:1;padding:6px;font-size:0.73rem">🔢 Toán</button>
+    </div>
+    <div id="manage-list"></div>
+    <div style="display:flex;gap:7px;margin-top:9px">
+      <input type="text" id="new-ex-inp" placeholder="Tên dạng bài mới...">
+      <button class="btn btn-sky btn-sm" onclick="addExType()" style="white-space:nowrap">➕ Thêm</button>
+    </div>
+    <div class="modal-acts"><button class="btn btn-ghost btn-sm" onclick="closeManage()">Đóng</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Chi tiết kết quả -->
+<div class="overlay" id="modal-res">
+  <div class="modal">
+    <div class="modal-title" id="mres-title">📊 Kết quả</div>
+    <div id="mres-meta" style="font-size:0.74rem;color:var(--slate);margin-bottom:11px"></div>
+    <div id="mres-body"></div>
+    <div class="modal-acts"><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-res')">Đóng</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA_URL = 'https://ybqbweywgkbfidhlcjeh.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlicWJ3ZXl3Z2tiZmlkaGxjamVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MTU3OTAsImV4cCI6MjA5NjM5MTc5MH0.DD1sJjgbIv82fgLk3SPxpGDg7ENo9jPO0nD63UVKN9g';
+const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+const DEFAULTS = {
+  mn:[{id:'mn1',name:'Nghe nhắc lại giúp học sinh luyện nói'},{id:'mn2',name:'Nghe nhắc lại chọn đúng hình ảnh tương ứng'},{id:'mn3',name:'Bài kiểm tra nói'}],
+  th:[{id:'th1',name:'Nghe nhắc lại học mặt chữ (key)'},{id:'th2',name:'Nghe dịch sang Tiếng Việt'},{id:'th3',name:'Dạng bài khuyết từ'},{id:'th4',name:'Đánh máy có key'},{id:'th5',name:'Đánh máy không có key'},{id:'th6',name:'Kiểm tra nói'},{id:'th7',name:'Ngữ pháp 50 câu trắc nghiệm'},{id:'th8',name:'50 câu sắp xếp câu'}],
+  to:[{id:'to1',name:'Nghe nhắc lại học mặt chữ (key)'},{id:'to2',name:'Nghe dịch sang Tiếng Việt'},{id:'to3',name:'Dạng bài khuyết từ'},{id:'to4',name:'Đánh máy có key'},{id:'to5',name:'Đánh máy không có key'},{id:'to6',name:'Kiểm tra nói'},{id:'to7',name:'Ngữ pháp 50 câu trắc nghiệm'},{id:'to8',name:'50 câu sắp xếp câu'}]
+};
+
+let TPL = JSON.parse(localStorage.getItem('wm_tpl')||'null') || JSON.parse(JSON.stringify(DEFAULTS));
+let sessions=[], block='mn', selIds=new Set(), customN=0, manageBlock='mn';
+let currentUser = null;
+
+// ===== LOGIN =====
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('inp-date').value = today();
+  document.addEventListener('input', buildPreview);
+  document.getElementById('new-ex-inp').addEventListener('keydown',e=>{if(e.key==='Enter')addExType();});
+  document.getElementById('inp-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  // Check saved session
+  const saved = localStorage.getItem('wm_user');
+  if(saved){ currentUser=JSON.parse(saved); showApp(); }
+});
+
+async function doLogin(){
+  const u=document.getElementById('inp-user').value.trim();
+  const p=document.getElementById('inp-pass').value;
+  const btn=document.getElementById('btn-login');
+  if(!u||!p){showErr('Vui lòng nhập đầy đủ!');return;}
+  btn.innerHTML='<span class="spin"></span> Đang đăng nhập...'; btn.disabled=true;
+  try {
+    const {data,error}=await db.from('users').select('*').eq('username',u).eq('password',p).single();
+    if(error||!data){showErr('Sai tên đăng nhập hoặc mật khẩu!');}
+    else { currentUser=data; localStorage.setItem('wm_user',JSON.stringify(data)); showApp(); }
+  } catch(e){showErr('Lỗi kết nối!');}
+  btn.innerHTML='🔐 Đăng nhập'; btn.disabled=false;
+}
+
+function showErr(msg){
+  const el=document.getElementById('login-err');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+function showApp(){
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  document.getElementById('hd-username').textContent=currentUser.displayname||currentUser.username;
+  if(currentUser.role==='admin') document.getElementById('tab-admin').style.display='flex';
+  renderChips(); loadSessions();
+}
+
+function doLogout(){
+  localStorage.removeItem('wm_user');
+  currentUser=null;
+  closeModal('modal-user-menu');
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('login-page').style.display='block';
+  document.getElementById('inp-user').value='';
+  document.getElementById('inp-pass').value='';
+}
+
+// ===== USER MENU =====
+function openUserMenu(){
+  document.getElementById('um-name').textContent=currentUser.displayname||currentUser.username;
+  document.getElementById('um-role').textContent=currentUser.role==='admin'?'👑 Admin':'👩‍🏫 Giáo viên';
+  document.getElementById('modal-user-menu').classList.add('open');
+}
+function openChangePass(){ document.getElementById('modal-chpass').classList.add('open'); }
+async function saveNewPassword(){
+  const np=document.getElementById('cp-new').value;
+  const cp=document.getElementById('cp-confirm').value;
+  if(!np){toast('⚠️ Nhập mật khẩu mới!');return;}
+  if(np!==cp){toast('⚠️ Mật khẩu không khớp!');return;}
+  const {error}=await db.from('users').update({password:np}).eq('id',currentUser.id);
+  if(error){toast('❌ Lỗi đổi mật khẩu!');return;}
+  currentUser.password=np; localStorage.setItem('wm_user',JSON.stringify(currentUser));
+  closeModal('modal-chpass'); toast('✅ Đã đổi mật khẩu!');
+  document.getElementById('cp-new').value=''; document.getElementById('cp-confirm').value='';
+}
+
+// ===== CHANGE PASSWORD (from admin tab) =====
+async function changeMyPassword(){
+  const np=document.getElementById('inp-new-pass').value;
+  const cp=document.getElementById('inp-confirm-pass').value;
+  if(!np){toast('⚠️ Nhập mật khẩu mới!');return;}
+  if(np!==cp){toast('⚠️ Mật khẩu không khớp!');return;}
+  const {error}=await db.from('users').update({password:np}).eq('id',currentUser.id);
+  if(error){toast('❌ Lỗi!');return;}
+  currentUser.password=np; localStorage.setItem('wm_user',JSON.stringify(currentUser));
+  document.getElementById('inp-new-pass').value=''; document.getElementById('inp-confirm-pass').value='';
+  toast('✅ Đã đổi mật khẩu!');
+}
+
+// ===== ADMIN: USER MANAGEMENT =====
+async function loadUsers(){
+  const {data}=await db.from('users').select('*').order('id');
+  const el=document.getElementById('user-list');
+  if(!data||!data.length){el.innerHTML='<div style="color:var(--slate);font-size:0.82rem">Chưa có tài khoản nào.</div>';return;}
+  el.innerHTML=data.map(u=>`
+    <div class="user-item">
+      <div class="user-avatar ${u.role==='admin'?'ua-admin':'ua-teacher'}">${u.role==='admin'?'👑':'👩‍🏫'}</div>
+      <div class="user-info">
+        <div class="user-name">${u.displayname||u.username}</div>
+        <div class="user-role">@${u.username} · ${u.role==='admin'?'Admin':'Giáo viên'}</div>
+      </div>
+      ${u.id!==currentUser.id?`<button class="btn btn-coral btn-sm" onclick="deleteUser(${u.id},'${u.username}')">🗑️</button>`:'<span style="font-size:0.7rem;color:var(--slate)">(bạn)</span>'}
+    </div>`).join('');
+}
+function openAddUser(){ document.getElementById('modal-add-user').classList.add('open'); }
+async function saveNewUser(){
+  const un=document.getElementById('nu-username').value.trim();
+  const pw=document.getElementById('nu-password').value;
+  const dn=document.getElementById('nu-displayname').value.trim();
+  const role=document.getElementById('nu-role').value;
+  if(!un||!pw||!dn){toast('⚠️ Điền đầy đủ thông tin!');return;}
+  const {error}=await db.from('users').insert([{username:un,password:pw,displayname:dn,role}]);
+  if(error){toast('❌ Lỗi: '+(error.message||''));return;}
+  closeModal('modal-add-user');
+  document.getElementById('nu-username').value='';
+  document.getElementById('nu-password').value='';
+  document.getElementById('nu-displayname').value='';
+  loadUsers(); toast('✅ Đã tạo tài khoản: '+dn);
+}
+async function deleteUser(id,username){
+  if(!confirm(`Xóa tài khoản @${username}?`))return;
+  await db.from('users').delete().eq('id',id);
+  loadUsers(); toast('🗑️ Đã xóa!');
+}
+
+// ===== TABS =====
+function goTab(id,btn){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  document.getElementById(id).classList.add('on'); btn.classList.add('on');
+  if(id==='pg-results') loadSessions();
+  if(id==='pg-admin') loadUsers();
+}
+
+// ===== BLOCK =====
+function setBlock(b){
+  block=b; ['mn','th','to'].forEach(x=>document.getElementById('bb-'+x).classList.toggle('on',x===b));
+  selIds.clear(); document.getElementById('rows').innerHTML=''; customN=0;
+  renderChips(); buildPreview();
+}
+
+// ===== CHIPS =====
+function renderChips(){
+  const tpls=TPL[block]||[];
+  if(!tpls.length){document.getElementById('chips').innerHTML='<div style="font-size:0.78rem;color:var(--slate)">Chưa có dạng bài. Bấm ⚙️ để thêm.</div>';return;}
+  document.getElementById('chips').innerHTML=tpls.map(t=>`
+    <div class="ec ${selIds.has(t.id)?'on':''}" onclick="toggleEx('${t.id}')">
+      ${t.name.length>26?t.name.slice(0,26)+'…':t.name}
+    </div>`).join('');
+}
+function toggleEx(id){
+  if(selIds.has(id)){selIds.delete(id);document.getElementById('r-'+id)?.remove();}
+  else{selIds.add(id);const t=TPL[block].find(x=>x.id===id);if(t)appendRow(id,t.name);}
+  renderChips();reNumber();buildPreview();
+}
+function appendRow(id,name,pVal='',rVal=''){
+  const wrap=document.getElementById('rows');const d=document.createElement('div');
+  d.className='ex-row';d.id='r-'+id;
+  d.innerHTML=`<div class="ex-hd"><div class="ex-num num-lbl">?</div><div class="ex-name">${name}</div></div>
+    <div class="ex-links">
+      <div><span class="ll ll-p">▶ Link Chơi</span><input type="url" id="p-${id}" placeholder="wordwall.net/play/..." value="${pVal}"></div>
+      <div><span class="ll ll-r">📊 Link Kết quả</span><input type="url" id="res-${id}" placeholder="wordwall.net/results/..." value="${rVal}"></div>
+    </div>`;
+  wrap.appendChild(d);
+}
+function addCustomRow(){
+  customN++;const id='c'+customN;const wrap=document.getElementById('rows');const d=document.createElement('div');
+  d.className='ex-row';d.id='r-'+id;
+  d.innerHTML=`<div class="ex-hd"><div class="ex-num num-lbl">?</div>
+    <input type="text" id="cn-${id}" placeholder="Tên dạng bài..." style="border:none;background:transparent;font-weight:700;font-size:0.83rem;flex:1;outline:none">
+    <button class="btn-del" onclick="document.getElementById('r-${id}').remove();reNumber();buildPreview()">✕</button></div>
+    <div class="ex-links">
+      <div><span class="ll ll-p">▶ Link Chơi</span><input type="url" id="p-${id}" placeholder="wordwall.net/play/..."></div>
+      <div><span class="ll ll-r">📊 Link Kết quả</span><input type="url" id="res-${id}" placeholder="wordwall.net/results/..."></div>
+    </div>`;
+  wrap.appendChild(d);reNumber();buildPreview();
+}
+function reNumber(){
+  document.querySelectorAll('#rows .ex-row').forEach((row,i)=>{const l=row.querySelector('.num-lbl');if(l)l.textContent=i+1;});
+}
+function collectRows(){
+  const allTpl=[...TPL.mn,...TPL.th,...TPL.to];
+  return Array.from(document.querySelectorAll('#rows .ex-row')).map(row=>{
+    const id=row.id.replace('r-','');
+    const tpl=allTpl.find(x=>x.id===id);
+    const name=tpl?tpl.name:(document.getElementById('cn-'+id)?.value.trim()||'Bài tập');
+    const play=document.getElementById('p-'+id)?.value.trim()||'';
+    const result=document.getElementById('res-'+id)?.value.trim()||'';
+    return{id,name,play,result};
+  }).filter(r=>r.name||r.play);
+}
+function buildPreview(){
+  const topic=document.getElementById('inp-topic').value.trim();
+  const rows=collectRows();const box=document.getElementById('preview');
+  if(!topic&&!rows.length){box.textContent='← Điền tên bài học và chọn dạng bài bên trên';return;}
+  let msg='';if(topic)msg+=`📚 Nội dung bài học: ${topic}\n`;
+  rows.forEach((r,i)=>{msg+=`\n${i+1}. ${r.name}.`;if(r.play)msg+=`\n${r.play}`;});
+  box.textContent=msg.trim();
+}
+function doCopy(){
+  const topic=document.getElementById('inp-topic').value.trim();const rows=collectRows();
+  if(!topic){toast('⚠️ Nhập tên bài học!');return;}
+  if(!rows.length){toast('⚠️ Chọn ít nhất 1 dạng bài!');return;}
+  let msg=`📚 Nội dung bài học: ${topic}\n`;
+  rows.forEach((r,i)=>{msg+=`\n${i+1}. ${r.name}.`;if(r.play)msg+=`\n${r.play}`;});
+  navigator.clipboard.writeText(msg.trim()).then(()=>toast('📋 Đã copy tin giao bài!'));
+}
+async function doSave(){
+  const topic=document.getElementById('inp-topic').value.trim();
+  const date=document.getElementById('inp-date').value;
+  const rows=collectRows();
+  if(!topic){toast('⚠️ Nhập tên bài học!');return;}
+  if(!rows.length){toast('⚠️ Chọn ít nhất 1 dạng bài!');return;}
+  const btn=document.getElementById('btn-save');
+  btn.innerHTML='<span class="spin"></span> Đang lưu...';btn.disabled=true;
+  try{
+    const {data,error}=await db.from('sessions').insert([{topic,date,block,rows:JSON.stringify(rows),user_id:currentUser.id,username:currentUser.username}]).select();
+    if(error)throw error;
+    sessions.unshift(data[0]);updateStat();toast('💾 Đã lưu buổi học!');
+    document.getElementById('inp-topic').value='';
+    selIds.clear();customN=0;document.getElementById('rows').innerHTML='';
+    renderChips();buildPreview();setSyncDot(true);
+  }catch(e){toast('❌ Lỗi lưu!');setSyncDot(false);}
+  btn.innerHTML='💾 Lưu buổi học';btn.disabled=false;
+}
+
+// ===== SESSIONS =====
+async function loadSessions(){
+  try{
+    let q=db.from('sessions').select('*').order('id',{ascending:false});
+    if(currentUser.role!=='admin') q=q.eq('user_id',currentUser.id);
+    const{data,error}=await q;
+    if(error)throw error;
+    sessions=data||[];setSyncDot(true);
+  }catch(e){setSyncDot(false);sessions=[];}
+  updateStat();renderResults();
+}
+function renderResults(){
+  const el=document.getElementById('results-list');
+  if(!sessions.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">📭</div><div class="empty-txt">Chưa có buổi học nào.<br>Tạo buổi học ở tab Giao bài.</div></div>';return;
+  }
+  el.innerHTML=sessions.map(s=>{
+    const rows=typeof s.rows==='string'?JSON.parse(s.rows):s.rows;
+    const dl=daysLeft(s.date);const warn=dl<=2;const expired=dl<=0;
+    const hasR=rows.some(r=>r.result);
+    return`<div class="ri ${warn||expired?'warn':''}">
+      <div class="ri-top">
+        <div>
+          <div class="ri-title">📚 ${s.topic}</div>
+          <div class="ri-meta">📅 ${fmt(s.date)} · ${blockLabel(s.block)} · ${rows.length} bài${s.username&&currentUser.role==='admin'?' · 👤 '+s.username:''}</div>
+          ${expired?'<div class="ri-warn">🔴 Quá 7 ngày — nên xóa</div>':warn?`<div class="ri-warn">⏳ Còn ${dl} ngày</div>`:''}
+        </div>
+        <span class="badge ${warn||expired?'b-amber':'b-sky'}">${hasR?'Có KQ':'Chưa KQ'}</span>
+      </div>
+      <div class="ri-actions">
+        <button class="btn btn-sky btn-sm" onclick="openResult(${s.id})">📊 Xem KQ</button>
+        <button class="btn btn-ghost btn-sm" onclick="delSession(${s.id})">🗑️ Xóa</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openResult(id){
+  const s=sessions.find(x=>x.id===id);if(!s)return;
+  const rows=typeof s.rows==='string'?JSON.parse(s.rows):s.rows;
+  document.getElementById('mres-title').textContent=`📚 ${s.topic}`;
+  document.getElementById('mres-meta').textContent=`📅 ${fmt(s.date)} · ${blockLabel(s.block)}`;
+  const hasR=rows.some(r=>r.result);
+  document.getElementById('mres-body').innerHTML=!hasR
+    ?'<div style="color:var(--slate);font-size:0.82rem;padding:12px 0;text-align:center">Chưa có link kết quả nào.</div>'
+    :rows.filter(r=>r.result).map(r=>`
+      <div class="rex">
+        <div><div class="rex-name">${r.name}</div><div class="rex-url">${r.result}</div></div>
+        <a href="${r.result}" target="_blank" class="btn btn-coral btn-sm" style="text-decoration:none;white-space:nowrap;flex-shrink:0">🔗 Mở</a>
+      </div>`).join('');
+  document.getElementById('modal-res').classList.add('open');
+}
+async function delSession(id){
+  if(!confirm('Xóa buổi học này?'))return;
+  await db.from('sessions').delete().eq('id',id);
+  sessions=sessions.filter(s=>s.id!==id);
+  updateStat();renderResults();toast('🗑️ Đã xóa!');
+}
+
+// ===== MANAGE DẠNG BÀI =====
+function openManage(){
+  manageBlock=block;
+  ['mn','th','to'].forEach(x=>document.getElementById('mb-'+x).classList.toggle('on',x===manageBlock));
+  renderManageList();document.getElementById('modal-manage').classList.add('open');
+}
+function closeManage(){
+  document.getElementById('modal-manage').classList.remove('open');
+  localStorage.setItem('wm_tpl',JSON.stringify(TPL));renderChips();
+}
+function switchMB(b){manageBlock=b;['mn','th','to'].forEach(x=>document.getElementById('mb-'+x).classList.toggle('on',x===b));renderManageList();}
+function renderManageList(){
+  const items=TPL[manageBlock]||[];const el=document.getElementById('manage-list');
+  if(!items.length){el.innerHTML='<div style="color:var(--slate);font-size:0.82rem;padding:8px 0">Chưa có dạng bài nào.</div>';return;}
+  el.innerHTML=items.map((t,i)=>`
+    <div class="manage-row">
+      <div class="manage-num">${i+1}</div>
+      <div class="manage-name">${t.name}</div>
+      <button class="btn-del" onclick="removeExType('${t.id}')">✕</button>
+    </div>`).join('');
+}
+function addExType(){
+  const inp=document.getElementById('new-ex-inp');const name=inp.value.trim();
+  if(!name){toast('⚠️ Nhập tên!');return;}
+  TPL[manageBlock].push({id:manageBlock+'_'+Date.now(),name});inp.value='';
+  renderManageList();toast('✅ Đã thêm: '+name);
+}
+function removeExType(id){TPL[manageBlock]=TPL[manageBlock].filter(t=>t.id!==id);renderManageList();toast('🗑️ Đã xóa!');}
+
+// ===== UTILS =====
+function today(){return new Date().toISOString().split('T')[0];}
+function fmt(s){if(!s)return'';const p=(s+'').split('T')[0].split('-');return`${p[2]}/${p[1]}/${p[0]}`;}
+function daysLeft(ds){const e=new Date(ds);e.setDate(e.getDate()+7);return Math.ceil((e-new Date())/86400000);}
+function blockLabel(b){return b==='mn'?'🌸 Mầm non':b==='th'?'🏫 Tiểu học':'🔢 Toán';}
+function setSyncDot(ok){document.getElementById('sync-dot').className='sync-dot'+(ok?'':' off');}
+function updateStat(){}
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+</script>
+</body>
+</html>
