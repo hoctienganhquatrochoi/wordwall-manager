@@ -379,8 +379,11 @@ async function showApp(){
   document.getElementById('main-app').style.display='block';
   document.getElementById('hd-username').textContent=currentUser.displayname||currentUser.username;
   if(currentUser.role==='admin') document.getElementById('tab-admin').style.display='flex';
+  // Load templates first, then render
+  document.getElementById('rows').innerHTML='<div style="text-align:center;padding:12px;color:var(--slate)">⏳ Đang tải...</div>';
   await loadTPL();
-  renderAllRows(); loadSessions();
+  renderAllRows();
+  loadSessions();
 }
 
 function doLogout(){
@@ -476,21 +479,22 @@ function setBlock(b){
   renderAllRows(); buildPreview();
 }
 
-// Render all exercises for current block automatically (no chips)
 function renderAllRows(){
   const wrap=document.getElementById('rows');
   wrap.innerHTML='';
   const tpls=TPL[block]||[];
+  if(!tpls.length){
+    wrap.innerHTML='<div style="color:var(--slate);font-size:0.82rem;padding:8px 0;text-align:center">Chưa có dạng bài. Bấm ⚙️ Quản lý để thêm.</div>';
+    buildPreview(); return;
+  }
   // Sort: kiểm tra nói always last
   const sorted=[...tpls].sort((a,b)=>{
-    const aLast=a.name.toLowerCase().includes('kiểm tra nói');
-    const bLast=b.name.toLowerCase().includes('kiểm tra nói');
-    if(aLast&&!bLast)return 1;
-    if(!aLast&&bLast)return -1;
-    return 0;
+    const aL=a.name.toLowerCase().includes('kiểm tra nói');
+    const bL=b.name.toLowerCase().includes('kiểm tra nói');
+    if(aL&&!bL)return 1; if(!aL&&bL)return -1; return 0;
   });
-  sorted.forEach((t,i)=>appendRow(t.id, t.name));
-  buildPreview();
+  sorted.forEach(t=>appendRow(t.id, t.name));
+  reNumber(); buildPreview();
 }
 
 function appendRow(id, name, pVal='', rVal=''){
