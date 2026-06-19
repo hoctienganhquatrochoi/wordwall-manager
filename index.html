@@ -69,12 +69,16 @@ input:focus{border-color:var(--sky)}.fr{margin-bottom:11px}
 .ec{padding:5px 12px;border-radius:20px;border:2px solid var(--border);background:#fff;color:var(--slate);font-family:'Quicksand',sans-serif;font-weight:700;font-size:0.76rem;cursor:pointer;transition:all .15s;user-select:none}
 .ec.on{background:var(--sky);border-color:var(--sky);color:#fff}
 
-/* EX ROW */
-.ex-row{background:#f7f9fc;border:1.5px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:8px;animation:fi .2s ease}
+/* EX ROW - new design */
+.ex-row{background:#f7f9fc;border:1.5px solid var(--border);border-radius:var(--rs);padding:9px 10px;margin-bottom:7px;animation:fi .2s ease}
 @keyframes fi{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
-.ex-hd{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.ex-hd{display:flex;align-items:center;gap:6px;margin-bottom:7px}
 .ex-num{background:var(--sky);color:#fff;font-size:0.66rem;font-weight:800;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ex-name{font-size:0.83rem;font-weight:700;color:var(--text);flex:1}
+.ex-name-inp{flex:1;border:none;background:transparent;font-family:'Quicksand',sans-serif;font-weight:700;font-size:0.83rem;color:var(--text);outline:none;padding:2px 4px;border-radius:5px;transition:background .15s}
+.ex-name-inp:focus{background:#e8f3ff}
+.move-btns{display:flex;flex-direction:column;gap:1px;flex-shrink:0}
+.btn-move{background:none;border:1px solid var(--border);border-radius:4px;width:20px;height:16px;cursor:pointer;font-size:0.6rem;display:flex;align-items:center;justify-content:center;color:var(--slate);transition:all .15s}
+.btn-move:hover{background:var(--sky);color:#fff;border-color:var(--sky)}
 .ex-links{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .ll{font-size:0.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px}
 .ll-p{color:var(--mint)}.ll-r{color:var(--coral)}
@@ -190,22 +194,21 @@ input:focus{border-color:var(--sky)}.fr{margin-bottom:11px}
 <div class="pg on" id="pg-assign">
   <div class="card">
     <div class="card-title">📌 Thông tin bài học</div>
-    <div class="fr"><label>Nội dung bài học</label><input type="text" id="inp-topic" placeholder="VD: School Supplies Song, Colors..."></div>
-    <div class="fr" style="margin-bottom:0"><label>Ngày giao</label><input type="date" id="inp-date"></div>
+    <div class="fr" style="margin-bottom:0"><label>Nội dung bài học</label><input type="text" id="inp-topic" placeholder="VD: FF1-U1, School Supplies Song...">
+    </div>
+    <input type="date" id="inp-date" style="display:none">
   </div>
   <div class="card">
-    <div class="card-title">🗂️ Chọn khối & dạng bài</div>
+    <div class="card-title">🗂️ Chọn khối & dạng bài
+      <span style="margin-left:auto"><button class="btn btn-ghost btn-sm" onclick="openManage()" style="font-size:0.7rem">⚙️ Quản lý</button></span>
+    </div>
     <div class="block-sel">
       <button class="bb on" id="bb-mn" onclick="setBlock('mn')">🌸 Mầm non</button>
       <button class="bb" id="bb-th" onclick="setBlock('th')">🏫 Tiểu học</button>
       <button class="bb" id="bb-to" onclick="setBlock('to')">🔢 Toán</button>
     </div>
-    <div style="text-align:right;margin-bottom:9px">
-      <button class="btn btn-ghost btn-sm" onclick="openManage()" style="font-size:0.7rem">⚙️ Quản lý dạng bài</button>
-    </div>
-    <div class="ex-chips" id="chips"></div>
     <div id="rows"></div>
-    <button class="btn btn-ghost btn-full btn-sm" style="margin-top:4px" onclick="addCustomRow()">➕ Thêm dạng bài khác</button>
+    <button class="btn btn-ghost btn-full btn-sm" style="margin-top:4px" onclick="addCustomRow()">➕ Thêm dạng bài</button>
   </div>
   <div class="card">
     <div class="card-title">👀 Tin nhắn giao bài</div>
@@ -367,7 +370,7 @@ function showApp(){
   document.getElementById('main-app').style.display='block';
   document.getElementById('hd-username').textContent=currentUser.displayname||currentUser.username;
   if(currentUser.role==='admin') document.getElementById('tab-admin').style.display='flex';
-  renderChips(); loadSessions();
+  renderAllRows(); loadSessions();
 }
 
 function doLogout(){
@@ -460,55 +463,82 @@ function goTab(id,btn){
 // ===== BLOCK =====
 function setBlock(b){
   block=b; ['mn','th','to'].forEach(x=>document.getElementById('bb-'+x).classList.toggle('on',x===b));
-  selIds.clear(); document.getElementById('rows').innerHTML=''; customN=0;
-  renderChips(); buildPreview();
+  renderAllRows(); buildPreview();
 }
 
-// ===== CHIPS =====
-function renderChips(){
+// Render all exercises for current block automatically (no chips)
+function renderAllRows(){
+  const wrap=document.getElementById('rows');
+  wrap.innerHTML='';
   const tpls=TPL[block]||[];
-  if(!tpls.length){document.getElementById('chips').innerHTML='<div style="font-size:0.78rem;color:var(--slate)">Chưa có dạng bài. Bấm ⚙️ để thêm.</div>';return;}
-  document.getElementById('chips').innerHTML=tpls.map(t=>`
-    <div class="ec ${selIds.has(t.id)?'on':''}" onclick="toggleEx('${t.id}')">
-      ${t.name.length>26?t.name.slice(0,26)+'…':t.name}
-    </div>`).join('');
+  // Sort: kiểm tra nói always last
+  const sorted=[...tpls].sort((a,b)=>{
+    const aLast=a.name.toLowerCase().includes('kiểm tra nói');
+    const bLast=b.name.toLowerCase().includes('kiểm tra nói');
+    if(aLast&&!bLast)return 1;
+    if(!aLast&&bLast)return -1;
+    return 0;
+  });
+  sorted.forEach((t,i)=>appendRow(t.id, t.name));
+  buildPreview();
 }
-function toggleEx(id){
-  if(selIds.has(id)){selIds.delete(id);document.getElementById('r-'+id)?.remove();}
-  else{selIds.add(id);const t=TPL[block].find(x=>x.id===id);if(t)appendRow(id,t.name);}
-  renderChips();reNumber();buildPreview();
-}
-function appendRow(id,name,pVal='',rVal=''){
-  const wrap=document.getElementById('rows');const d=document.createElement('div');
-  d.className='ex-row';d.id='r-'+id;
-  d.innerHTML=`<div class="ex-hd"><div class="ex-num num-lbl">?</div><div class="ex-name">${name}</div></div>
+
+function appendRow(id, name, pVal='', rVal=''){
+  const wrap=document.getElementById('rows');
+  const d=document.createElement('div');
+  d.className='ex-row'; d.id='r-'+id;
+  d.innerHTML=`
+    <div class="ex-hd">
+      <div class="ex-num num-lbl">?</div>
+      <input class="ex-name-inp" id="name-${id}" type="text" value="${name}" placeholder="Tên dạng bài...">
+      <div class="move-btns">
+        <button class="btn-move" onclick="moveRow('${id}',-1)" title="Lên">▲</button>
+        <button class="btn-move" onclick="moveRow('${id}',1)" title="Xuống">▼</button>
+      </div>
+      <button class="btn-del" onclick="removeRow('${id}')" title="Xóa">✕</button>
+    </div>
     <div class="ex-links">
       <div><span class="ll ll-p">▶ Link Chơi</span><input type="url" id="p-${id}" placeholder="wordwall.net/play/..." value="${pVal}"></div>
       <div><span class="ll ll-r">📊 Link Kết quả</span><input type="url" id="res-${id}" placeholder="wordwall.net/results/..." value="${rVal}"></div>
     </div>`;
   wrap.appendChild(d);
+  d.querySelector('.ex-name-inp').addEventListener('input', buildPreview);
 }
+
+function removeRow(id){
+  document.getElementById('r-'+id)?.remove();
+  reNumber(); buildPreview();
+}
+
+function moveRow(id, dir){
+  const wrap=document.getElementById('rows');
+  const rows=Array.from(wrap.querySelectorAll('.ex-row'));
+  const idx=rows.findIndex(r=>r.id==='r-'+id);
+  const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=rows.length)return;
+  if(dir===-1) wrap.insertBefore(rows[idx],rows[newIdx]);
+  else wrap.insertBefore(rows[newIdx],rows[idx]);
+  reNumber(); buildPreview();
+}
+
 function addCustomRow(){
-  customN++;const id='c'+customN;const wrap=document.getElementById('rows');const d=document.createElement('div');
-  d.className='ex-row';d.id='r-'+id;
-  d.innerHTML=`<div class="ex-hd"><div class="ex-num num-lbl">?</div>
-    <input type="text" id="cn-${id}" placeholder="Tên dạng bài..." style="border:none;background:transparent;font-weight:700;font-size:0.83rem;flex:1;outline:none">
-    <button class="btn-del" onclick="document.getElementById('r-${id}').remove();reNumber();buildPreview()">✕</button></div>
-    <div class="ex-links">
-      <div><span class="ll ll-p">▶ Link Chơi</span><input type="url" id="p-${id}" placeholder="wordwall.net/play/..."></div>
-      <div><span class="ll ll-r">📊 Link Kết quả</span><input type="url" id="res-${id}" placeholder="wordwall.net/results/..."></div>
-    </div>`;
-  wrap.appendChild(d);reNumber();buildPreview();
+  const id='c'+Date.now();
+  appendRow(id,'');
+  reNumber();
+  // focus tên
+  setTimeout(()=>document.getElementById('name-'+id)?.focus(),50);
 }
+
 function reNumber(){
-  document.querySelectorAll('#rows .ex-row').forEach((row,i)=>{const l=row.querySelector('.num-lbl');if(l)l.textContent=i+1;});
+  document.querySelectorAll('#rows .ex-row').forEach((row,i)=>{
+    const l=row.querySelector('.num-lbl'); if(l) l.textContent=i+1;
+  });
 }
+
 function collectRows(){
-  const allTpl=[...TPL.mn,...TPL.th,...TPL.to];
   return Array.from(document.querySelectorAll('#rows .ex-row')).map(row=>{
     const id=row.id.replace('r-','');
-    const tpl=allTpl.find(x=>x.id===id);
-    const name=tpl?tpl.name:(document.getElementById('cn-'+id)?.value.trim()||'Bài tập');
+    const name=(document.getElementById('name-'+id)?.value||'').trim();
     const play=document.getElementById('p-'+id)?.value.trim()||'';
     const result=document.getElementById('res-'+id)?.value.trim()||'';
     return{id,name,play,result};
@@ -516,17 +546,22 @@ function collectRows(){
 }
 function buildPreview(){
   const topic=document.getElementById('inp-topic').value.trim();
+  const date=document.getElementById('inp-date').value;
   const rows=collectRows();const box=document.getElementById('preview');
   if(!topic&&!rows.length){box.textContent='← Điền tên bài học và chọn dạng bài bên trên';return;}
-  let msg='';if(topic)msg+=`📚 Nội dung bài học: ${topic}\n`;
+  const dateStr=date?` · ${fmt(date)}`:'';
+  let msg='';if(topic) msg+=`📚 Nội dung bài học: ${topic}${dateStr}\n`;
   rows.forEach((r,i)=>{msg+=`\n${i+1}. ${r.name}.`;if(r.play)msg+=`\n${r.play}`;});
   box.textContent=msg.trim();
 }
 function doCopy(){
-  const topic=document.getElementById('inp-topic').value.trim();const rows=collectRows();
+  const topic=document.getElementById('inp-topic').value.trim();
+  const date=document.getElementById('inp-date').value;
+  const rows=collectRows();
   if(!topic){toast('⚠️ Nhập tên bài học!');return;}
   if(!rows.length){toast('⚠️ Chọn ít nhất 1 dạng bài!');return;}
-  let msg=`📚 Nội dung bài học: ${topic}\n`;
+  const dateStr=date?` · ${fmt(date)}`:'';
+  let msg=`📚 Nội dung bài học: ${topic}${dateStr}\n`;
   rows.forEach((r,i)=>{msg+=`\n${i+1}. ${r.name}.`;if(r.play)msg+=`\n${r.play}`;});
   navigator.clipboard.writeText(msg.trim()).then(()=>toast('📋 Đã copy tin giao bài!'));
 }
@@ -543,8 +578,8 @@ async function doSave(){
     if(error)throw error;
     sessions.unshift(data[0]);updateStat();toast('💾 Đã lưu buổi học!');
     document.getElementById('inp-topic').value='';
-    selIds.clear();customN=0;document.getElementById('rows').innerHTML='';
-    renderChips();buildPreview();setSyncDot(true);
+    document.getElementById('rows').innerHTML='';
+    renderAllRows(); buildPreview();setSyncDot(true);
   }catch(e){toast('❌ Lỗi lưu!');setSyncDot(false);}
   btn.innerHTML='💾 Lưu buổi học';btn.disabled=false;
 }
@@ -615,7 +650,7 @@ function openManage(){
 }
 function closeManage(){
   document.getElementById('modal-manage').classList.remove('open');
-  localStorage.setItem('wm_tpl',JSON.stringify(TPL));renderChips();
+  localStorage.setItem('wm_tpl',JSON.stringify(TPL)); renderAllRows();
 }
 function switchMB(b){manageBlock=b;['mn','th','to'].forEach(x=>document.getElementById('mb-'+x).classList.toggle('on',x===b));renderManageList();}
 function renderManageList(){
