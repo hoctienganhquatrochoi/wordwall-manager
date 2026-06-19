@@ -324,15 +324,18 @@ const SUPA_URL = 'https://ybqbweywgkbfidhlcjeh.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlicWJ3ZXl3Z2tiZmlkaGxjamVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MTU3OTAsImV4cCI6MjA5NjM5MTc5MH0.DD1sJjgbIv82fgLk3SPxpGDg7ENo9jPO0nD63UVKN9g';
 const db = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-const DEFAULTS = {
-  mn:[{id:'mn1',name:'Nghe nhắc lại giúp học sinh luyện nói'},{id:'mn2',name:'Nghe nhắc lại chọn đúng hình ảnh tương ứng'},{id:'mn3',name:'Bài kiểm tra nói'}],
-  th:[{id:'th1',name:'Nghe nhắc lại học mặt chữ (key)'},{id:'th2',name:'Nghe dịch sang Tiếng Việt'},{id:'th3',name:'Dạng bài khuyết từ'},{id:'th4',name:'Đánh máy có key'},{id:'th5',name:'Đánh máy không có key'},{id:'th6',name:'Kiểm tra nói'},{id:'th7',name:'Ngữ pháp 50 câu trắc nghiệm'},{id:'th8',name:'50 câu sắp xếp câu'}],
-  to:[{id:'to1',name:'Nghe nhắc lại học mặt chữ (key)'},{id:'to2',name:'Nghe dịch sang Tiếng Việt'},{id:'to3',name:'Dạng bài khuyết từ'},{id:'to4',name:'Đánh máy có key'},{id:'to5',name:'Đánh máy không có key'},{id:'to6',name:'Kiểm tra nói'},{id:'to7',name:'Ngữ pháp 50 câu trắc nghiệm'},{id:'to8',name:'50 câu sắp xếp câu'}]
-};
-
-let TPL = JSON.parse(localStorage.getItem('wm_tpl')||'null') || JSON.parse(JSON.stringify(DEFAULTS));
-let sessions=[], block='mn', selIds=new Set(), customN=0, manageBlock='mn';
+let TPL = {mn:[],th:[],to:[]};
+let sessions=[], block='mn', manageBlock='mn';
 let currentUser = null;
+
+// ===== LOAD TEMPLATES FROM SUPABASE =====
+async function loadTPL(){
+  const {data}=await db.from('templates').select('*').order('sort_order').order('id');
+  if(data&&data.length){
+    TPL={mn:[],th:[],to:[]};
+    data.forEach(t=>{ if(TPL[t.block]) TPL[t.block].push({id:'db-'+t.id, dbId:t.id, name:t.name}); });
+  }
+}
 
 // ===== LOGIN =====
 document.addEventListener('DOMContentLoaded',()=>{
@@ -365,11 +368,12 @@ function showErr(msg){
   setTimeout(()=>el.classList.remove('show'),3000);
 }
 
-function showApp(){
+async function showApp(){
   document.getElementById('login-page').style.display='none';
   document.getElementById('main-app').style.display='block';
   document.getElementById('hd-username').textContent=currentUser.displayname||currentUser.username;
   if(currentUser.role==='admin') document.getElementById('tab-admin').style.display='flex';
+  await loadTPL();
   renderAllRows(); loadSessions();
 }
 
@@ -648,9 +652,9 @@ function openManage(){
   ['mn','th','to'].forEach(x=>document.getElementById('mb-'+x).classList.toggle('on',x===manageBlock));
   renderManageList();document.getElementById('modal-manage').classList.add('open');
 }
-function closeManage(){
+async function closeManage(){
   document.getElementById('modal-manage').classList.remove('open');
-  localStorage.setItem('wm_tpl',JSON.stringify(TPL)); renderAllRows();
+  await loadTPL(); renderAllRows();
 }
 function switchMB(b){manageBlock=b;['mn','th','to'].forEach(x=>document.getElementById('mb-'+x).classList.toggle('on',x===b));renderManageList();}
 function renderManageList(){
@@ -660,16 +664,24 @@ function renderManageList(){
     <div class="manage-row">
       <div class="manage-num">${i+1}</div>
       <div class="manage-name">${t.name}</div>
-      <button class="btn-del" onclick="removeExType('${t.id}')">✕</button>
+      <button class="btn-del" onclick="removeExType(${t.dbId})">✕</button>
     </div>`).join('');
 }
-function addExType(){
+async function addExType(){
   const inp=document.getElementById('new-ex-inp');const name=inp.value.trim();
   if(!name){toast('⚠️ Nhập tên!');return;}
-  TPL[manageBlock].push({id:manageBlock+'_'+Date.now(),name});inp.value='';
-  renderManageList();toast('✅ Đã thêm: '+name);
+  const maxOrder=(TPL[manageBlock].length>0?Math.max(...TPL[manageBlock].map(t=>t.sort_order||0)):0)+1;
+  const {data,error}=await db.from('templates').insert([{block:manageBlock,name,sort_order:maxOrder}]).select().single();
+  if(error){toast('❌ Lỗi thêm!');return;}
+  TPL[manageBlock].push({id:'db-'+data.id,dbId:data.id,name:data.name});
+  inp.value=''; renderManageList(); toast('✅ Đã thêm: '+name);
 }
-function removeExType(id){TPL[manageBlock]=TPL[manageBlock].filter(t=>t.id!==id);renderManageList();toast('🗑️ Đã xóa!');}
+async function removeExType(dbId){
+  if(!confirm('Xóa dạng bài này khỏi danh sách vĩnh viễn?'))return;
+  await db.from('templates').delete().eq('id',dbId);
+  TPL[manageBlock]=TPL[manageBlock].filter(t=>t.dbId!==dbId);
+  renderManageList(); toast('🗑️ Đã xóa!');
+}
 
 // ===== UTILS =====
 function today(){return new Date().toISOString().split('T')[0];}
