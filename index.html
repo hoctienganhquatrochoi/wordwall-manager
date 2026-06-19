@@ -330,11 +330,17 @@ let currentUser = null;
 
 // ===== LOAD TEMPLATES FROM SUPABASE =====
 async function loadTPL(){
-  const {data}=await db.from('templates').select('*').order('sort_order').order('id');
-  if(data&&data.length){
-    TPL={mn:[],th:[],to:[]};
-    data.forEach(t=>{ if(TPL[t.block]) TPL[t.block].push({id:'db-'+t.id, dbId:t.id, name:t.name}); });
-  }
+  try {
+    const {data,error}=await db.from('templates').select('*').order('sort_order').order('id');
+    if(error) throw error;
+    if(data&&data.length){
+      TPL={mn:[],th:[],to:[]};
+      data.forEach(t=>{ 
+        const b=t.block;
+        if(TPL[b]) TPL[b].push({id:'db-'+t.id, dbId:t.id, name:t.name, sort_order:t.sort_order});
+      });
+    }
+  } catch(e){ console.error('loadTPL error:',e); }
 }
 
 // ===== LOGIN =====
